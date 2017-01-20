@@ -1,0 +1,576 @@
+/*
+ * Copyright (c) 2016, Christoph Engelbert (aka noctarius) and
+ * contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+options {
+    STATIC = false;
+    CHOICE_AMBIGUITY_CHECK=3;
+    JAVA_UNICODE_ESCAPE=false;
+    UNICODE_INPUT=true;
+    FORCE_LA_CHECK=true;
+    SUPPORT_CLASS_VISIBILITY_PUBLIC=false;
+    DEBUG_PARSER=true;
+    DEBUG_TOKEN_MANAGER=true;
+    DEBUG_LOOKAHEAD=true;
+}
+PARSER_BEGIN(GraphQLParser)
+package com.noctarius.graphquul.impl;
+
+import java.io.StringReader;
+
+class GraphQLParser {
+    static void parse(String query) throws ParseException, TokenMgrError {
+        new GraphQLParser(new StringReader(query)).Document();
+    }
+}
+PARSER_END(GraphQLParser)
+
+TOKEN: {
+      < COMMA                   : "," >
+    | < HASH                    : "#" >
+    | < BANG                    : "!" >
+    | < DOLLAR                  : "$" >
+    | < OPAR                    : "(" >
+    | < CPAR                    : ")" >
+    | < ELLIPSIS                : "..." >
+    | < COLON                   : ":" >
+    | < EQ                      : "=" >
+    | < AT                      : "@" >
+    | < OBRA                    : "[" >
+    | < CBRA                    : "]" >
+    | < OCBR                    : "{" >
+    | < PIPE                    : "|" >
+    | < CCBR                    : "}" >
+    | < PLUS                    : "+" >
+    | < MINUS                   : "-" >
+    | < SIGN                    : <PLUS> | <MINUS> >
+}
+
+TOKEN: {
+      < FRAGMENT                : "fragment" >
+    | < QUERY                   : "query" >
+    | < MUTATION                : "mutation" >
+    | < SCHEMA                  : "schema" >
+    | < SCALAR                  : "scalar" >
+    | < TYPE                    : "type" >
+    | < INTERFACE               : "interface" >
+    | < IMPLEMENTS              : "implements" >
+    | < ENUM                    : "enum" >
+    | < UNION                   : "union" >
+    | < INPUT                   : "input" >
+    | < EXTEND                  : "extend" >
+    | < DIRECTIVE               : "directive" >
+
+    | < TRUE                    : "true" >
+    | < FALSE                   : "false" >
+    | < NULL                    : "null" >
+    | < ON                      : "on" >
+}
+
+TOKEN: {
+      < DIGIT                   : [ "0"-"9" ] >
+    | < NON_ZERO_DIGIT          : [ "1"-"9" ] >
+}
+
+SKIP: {
+      "\t"
+    | "\u0020"
+    | "\ufeff" // Unicode BOM
+    | < SKIP_NEW_LINE            : <LINE_TERMINATOR> >
+    | < SKIP_INSIGN_COMMA        : <COMMA> >
+    | < SKIP_COMMENT             : <HASH> (~["\n", "\r", "\u2028", "\u2029"])* >
+}
+
+TOKEN: {
+      < #LINE_TERMINATOR        : ( ["\n", "\r", "\u2028", "\u2029"] ) >
+    | < #WHITESPACE             : ["\t", "\u000b", "\f", "\u0020", "\u00a0"] >
+    | < #LETTER                 : ["\t", "\r", "\n", "\u0020"-"\uffff"] >
+    | < #EXPONENT_IDENFITIER    : "e" | "E" >
+    | < #INTEGER_PART           : "0" | <NON_ZERO_DIGIT> (<DIGIT>)* >
+    | < #FRACTIONAL_PART        : "." (<DIGIT>)* >
+    | < #EXPONENT_PART          : <EXPONENT_IDENFITIER> (<SIGN>)? (<DIGIT>)+ >
+    | < INTEGER_LITERAL         : (<MINUS>)? <INTEGER_PART> >
+    | < FLOAT_LITERAL           : (<MINUS>)?
+                                  (
+                                      <INTEGER_PART> <FRACTIONAL_PART>
+                                    | <INTEGER_PART> <EXPONENT_PART>
+                                    | <INTEGER_PART> <FRACTIONAL_PART> <EXPONENT_PART>
+                                  ) >
+    | < STRING_LITERAL          : "\""
+                                  (
+                                        ~["\"", "\\", "\u2028", "\u2029"]
+                                      | "\\u" ( ["0"-"9"] | ["A"-"F"] | ["a"-"f"] ){4} // Escaped Unicode
+                                      | "\\" ( "\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" ) // Escaped Character
+                                      | (<LETTER>)+
+                                  )*
+                                  "\"" >
+    | < NAME_LITERAL            : ( "_" | ["A"-"Z"] | ["a"-"z"] ) ( "_" | ["0"-"9"] | ["A"-"Z"] | ["a"-"z"] )* >
+}
+
+
+
+
+// Document structure
+void Document(): {
+}
+{
+    (Definition())+
+}
+
+void Definition(): {
+}
+{
+      OperationDefinition() |
+      FragmentDefinition() |
+      TypeSystemDefinition()
+}
+
+void OperationDefinition(): {
+}
+{
+    SelectionSet() |
+    OperationType() (Name())? (VariableDefinitions())? (Directives())? SelectionSet()
+}
+
+void OperationType(): {
+}
+{
+      <MUTATION> |
+      <QUERY>
+}
+
+void VariableDefinitions(): {
+}
+{
+    <OPAR> (VariableDefinition())+ <CPAR>
+}
+
+void VariableDefinition(): {
+}
+{
+    Variable() <COLON> Type() (DefaultValue())?
+}
+
+void Variable(): {
+}
+{
+    <DOLLAR> Name()
+}
+
+void DefaultValue(): {
+}
+{
+    <EQ> Value()
+}
+
+
+
+
+// Operations
+void SelectionSet(): {
+}
+{
+    <OCBR> (Selection())+ <CCBR>
+}
+
+void Selection(): {
+    Token name;
+}
+{
+      (name = Name())
+      (
+          FieldWithAlias(name) |
+          Field(name)
+      ) |
+      <ELLIPSIS>
+      (
+          FragmentSpread() |
+          InlineFragment()
+      )
+}
+
+void Field(Token name): {
+}
+{
+    (Arguments())? (Directives())? (SelectionSet())?
+}
+
+void FieldWithAlias(Token name): {
+}
+{
+    <COLON> Name() (Arguments())? (Directives())? (SelectionSet())?
+}
+
+void Arguments(): {
+}
+{
+    <OPAR> (Argument())+ <CPAR>
+}
+
+void Argument(): {
+}
+{
+    Name() <COLON> ValueWithVariable()
+}
+
+
+
+
+// Fragments
+void FragmentSpread(): {
+}
+{
+    FragmentName() (Directives())?
+}
+
+void InlineFragment(): {
+}
+{
+    (TypeCondition())? (Directives())? SelectionSet()
+}
+
+void FragmentDefinition(): {
+}
+{
+    <FRAGMENT> FragmentName() TypeCondition() (Directives())? SelectionSet()
+}
+
+void FragmentName(): {
+    Token name;
+}
+{
+    (name = Name())
+    {
+        if ("on".equals(name.image)) throw new ParseException("on is not allowed at a name");
+    }
+}
+
+void TypeCondition(): {
+}
+{
+    <ON> TypeName()
+}
+
+
+
+
+// Values
+Token Name(): {
+    Token t;
+}
+{
+    (
+        t = <NAME_LITERAL> |
+        t = <FRAGMENT> |
+        t = <QUERY> |
+        t = <MUTATION> |
+        t = <SCHEMA> |
+        t = <SCALAR> |
+        t = <TYPE> |
+        t = <INTERFACE> |
+        t = <IMPLEMENTS> |
+        t = <ENUM> |
+        t = <UNION> |
+        t = <INPUT> |
+        t = <EXTEND> |
+        t = <DIRECTIVE>)
+    {
+        return t;
+    }
+
+}
+
+void Value(): {
+}
+{
+      IntValue()
+    | FloatValue()
+    | StringValue()
+    | BooleanValue()
+    | EnumValue()
+    | ListValue()
+    | ObjectValue()
+}
+
+void ValueWithVariable(): {
+}
+{
+      Variable()
+    | IntValue()
+    | FloatValue()
+    | StringValue()
+    | BooleanValue()
+    | EnumValue()
+    | ListValueWithVariable()
+    | ObjectValueWithVariable()
+}
+
+void EnumValue(): {
+    Token name = null;
+}
+{
+    ( name = Name() )
+    {
+        if ("true".equals(name.image)
+              || "false".equals(name.image)
+              || "null".equals(name.image)) throw new ParseException("true, false, null are not allowed as names");
+    }
+}
+
+
+
+
+// List Value
+void ListValue(): {
+}
+{
+    <OBRA> (Value())* <CBRA>
+}
+
+void ListValueWithVariable(): {
+}
+{
+    <OBRA> (ValueWithVariable())* <CBRA>
+}
+
+
+
+
+// Object Value
+void ObjectValue(): {
+}
+{
+    <OCBR> (ObjectField())* <CCBR>
+}
+
+void ObjectValueWithVariable(): {
+}
+{
+    <OCBR> (ObjectFieldWithValue())* <CCBR>
+}
+
+void ObjectField(): {
+}
+{
+    Name() <COLON> Value()
+}
+
+void ObjectFieldWithValue(): {
+}
+{
+    Name() <COLON> ValueWithVariable()
+}
+
+
+
+
+// Directives
+void Directives(): {
+}
+{
+    <AT> Directive() (<AT> Directive())*
+}
+
+void Directive(): {
+}
+{
+    Name() (Arguments())?
+}
+
+
+
+
+// Types
+void Type(): {
+}
+{
+    (
+        TypeName() |
+        ListType()
+    )
+    (<BANG>)?
+}
+
+void TypeName(): {
+}
+{
+    Name()
+}
+
+void ListType(): {
+}
+{
+    <OBRA> Type() <CBRA>
+}
+
+
+
+
+// Type System
+void TypeSystemDefinition(): {
+}
+{
+    SchemaDefinition() |
+    TypeDefinition() |
+    TypeExtensionDefinition() |
+    DirectiveDefinition()
+}
+
+void SchemaDefinition(): {
+}
+{
+    <SCHEMA> (Directives())? <OCBR> (OperationTypeDefinition())+ <CCBR>
+}
+
+void OperationTypeDefinition(): {
+}
+{
+    OperationType() <COLON> TypeName()
+}
+
+void TypeDefinition(): {
+}
+{
+    ScalarTypeDefinition() |
+    ObjectTypeDefinition() |
+    InterfaceTypeDefinition() |
+    UnionTypeDefinition() |
+    EnumTypeDefinition() |
+    InputObjectTypeDefinition()
+}
+
+void ScalarTypeDefinition(): {
+}
+{
+    <SCALAR> Name() (Directives())?
+}
+
+void ObjectTypeDefinition(): {
+}
+{
+    <TYPE> Name() (ImplementsInterface())? (Directives())? <OCBR> (FieldDefinition())+ <CCBR>
+}
+
+void ImplementsInterface(): {
+}
+{
+    <IMPLEMENTS> (TypeName())+
+}
+
+void FieldDefinition(): {
+}
+{
+    Name() (ArgumentsDefinition())? <COLON> Type() (Directives())?
+}
+
+void ArgumentsDefinition(): {
+}
+{
+    <OPAR> (InputValueDefinition())+ <CPAR>
+}
+
+void InputValueDefinition(): {
+}
+{
+    Name() <COLON> Type() (DefaultValue())? (Directives())?
+}
+
+void InterfaceTypeDefinition(): {
+}
+{
+    <INTERFACE> Name() (Directives())? <OCBR> (FieldDefinition())+ <CCBR>
+}
+
+void UnionTypeDefinition(): {
+}
+{
+    <UNION> Name() (Directives())? <EQ> UnionMembers()
+}
+
+void UnionMembers(): {
+}
+{
+    TypeName() (<PIPE> TypeName())*
+}
+
+void EnumTypeDefinition(): {
+}
+{
+    <ENUM> Name() (Directives())? <OCBR> (EnumValueDefinition())+ <CCBR>
+}
+
+void EnumValueDefinition(): {
+}
+{
+    EnumValue() (Directives())?
+}
+
+void InputObjectTypeDefinition(): {
+}
+{
+    <INPUT> Name() (Directives())? <OCBR> (InputValueDefinition())+ <CCBR>
+}
+
+void TypeExtensionDefinition(): {
+}
+{
+    <EXTEND> ObjectTypeDefinition()
+}
+
+void DirectiveDefinition(): {
+}
+{
+    <DIRECTIVE> <AT> Name() (ArgumentsDefinition())? <ON> DirectiveLocations()
+}
+
+void DirectiveLocation(): {
+}
+{
+    Name()
+}
+
+void DirectiveLocations(): {
+}
+{
+    DirectiveLocation() (<PIPE> DirectiveLocation())*
+}
+
+
+
+
+// Tokens
+void BooleanValue(): {
+}
+{
+    <TRUE> | <FALSE>
+}
+
+void IntValue(): {
+}
+{
+    <INTEGER_LITERAL>
+}
+
+void FloatValue(): {
+}
+{
+    <FLOAT_LITERAL>
+}
+
+void StringValue(): {
+}
+{
+    <STRING_LITERAL>
+}
