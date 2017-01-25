@@ -16,6 +16,8 @@
  */
 package com.noctarius.graphquul.impl;
 
+import com.noctarius.graphquul.visitor.Visitor;
+
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -27,11 +29,11 @@ import java.util.stream.Stream;
 
 public class Test {
     public static void main(String[] args) throws Exception {
-        URL url = Test.class.getResource("/test.graphql");
+        URL url = Test.class.getResource("/test-fragment.graphql");
         Path file = Paths.get(url.toURI());
         Stream<String> lines = Files.lines(file, Charset.forName("UTF-8"));
         String query = lines.collect(supplier(), StringJoiner::add, StringJoiner::merge).toString();
-        GraphQLParser.parse(query);
+        GraphQLParser.parse(query, new ASTStreamingVisitor(new Visitor[0]));
     }
 
     private static Supplier<StringJoiner> supplier() {

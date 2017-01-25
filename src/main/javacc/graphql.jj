@@ -15,24 +15,51 @@
  * limitations under the License.
  */
 options {
-    STATIC = false;
+    STATIC=false;
     CHOICE_AMBIGUITY_CHECK=3;
+    OTHER_AMBIGUITY_CHECK=3;
     JAVA_UNICODE_ESCAPE=false;
     UNICODE_INPUT=true;
     FORCE_LA_CHECK=true;
     SUPPORT_CLASS_VISIBILITY_PUBLIC=false;
-    DEBUG_PARSER=true;
-    DEBUG_TOKEN_MANAGER=true;
-    DEBUG_LOOKAHEAD=true;
+
+    BUILD_PARSER=true;
+    BUILD_TOKEN_MANAGER=true;
+
+    DEBUG_PARSER=false;
+    DEBUG_TOKEN_MANAGER=false;
+    DEBUG_LOOKAHEAD=false;
 }
 PARSER_BEGIN(GraphQLParser)
 package com.noctarius.graphquul.impl;
 
-import java.io.StringReader;
+import java.io.*;
+import com.noctarius.graphquul.ast.*;
+import com.noctarius.graphquul.visitor.*;
 
 class GraphQLParser {
-    static void parse(String query) throws ParseException, TokenMgrError {
-        new GraphQLParser(new StringReader(query)).Document();
+    private StreamingVisitor visitor;
+    private int tokenId = 0;
+
+    private GraphQLParser(Reader reader, StreamingVisitor visitor) {
+        this(reader);
+        this.visitor = visitor;
+    }
+
+    static void parse(String query, StreamingVisitor visitor) throws ParseException, TokenMgrError {
+        new GraphQLParser(new StringReader(query), visitor).Document();
+    }
+
+    private int line() {
+        return token_source.input_stream.getBeginLine();
+    }
+
+    private int column() {
+        return token_source.input_stream.getBeginColumn();
+    }
+
+    private int tokenId() {
+        return tokenId++;
     }
 }
 PARSER_END(GraphQLParser)
@@ -124,13 +151,18 @@ TOKEN: {
 
 // Document structure
 void Document(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitDocument(line, column, tokenId);
 }
 {
-    (Definition())+
+    (Definition())+ {
+        visitor.endDocument(tokenId);
+    }
 }
 
-void Definition(): {
-}
+void Definition(): {}
 {
       OperationDefinition() |
       FragmentDefinition() |
@@ -138,41 +170,76 @@ void Definition(): {
 }
 
 void OperationDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token operationType;
+    Token name = null;
 }
 {
-    SelectionSet() |
-    OperationType() (Name())? (VariableDefinitions())? (Directives())? SelectionSet()
-}
-
-void OperationType(): {
-}
-{
-      <MUTATION> |
-      <QUERY>
+    (
+        ({
+            visitor.visitOperation(line, column, tokenId);
+        }
+        SelectionSet()) |
+        (
+            operationType = OperationType() (name = Name())? {
+                OperationType opType = OperationType.byValue(operationType.image);
+                visitor.visitOperation(line, column, tokenId, opType, name != null? name.image : null);
+            }
+            (VariableDefinitions())? (Directives())? SelectionSet()
+        )
+    ) {
+        visitor.endOperation(tokenId);
+    }
 }
 
 void VariableDefinitions(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitVariableDefinitions(line, column, tokenId);
 }
 {
-    <OPAR> (VariableDefinition())+ <CPAR>
+    <OPAR> (VariableDefinition())+ <CPAR> {
+        visitor.endVariableDefinitions(tokenId);
+    }
 }
 
 void VariableDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitVariableDefinition(line, column, tokenId);
 }
 {
-    Variable() <COLON> Type() (DefaultValue())?
+    Variable() <COLON> Type() (DefaultValue())? {
+        visitor.endVariableDefinition(tokenId);
+    }
 }
 
 void Variable(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <DOLLAR> Name()
+    <DOLLAR> name = Name() {
+        visitor.visitVariable(line, column, tokenId, "$" + name.image);
+    }
 }
 
 void DefaultValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitDefaultValue(line, column, tokenId);
 }
 {
-    <EQ> Value()
+    <EQ> Value() {
+        visitor.endDefaultValue(tokenId);
+    }
 }
 
 
@@ -180,87 +247,144 @@ void DefaultValue(): {
 
 // Operations
 void SelectionSet(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitSelectionSet(line, column, tokenId);
 }
 {
-    <OCBR> (Selection())+ <CCBR>
+    <OCBR> (Selection())+ <CCBR> {
+        visitor.endSelectionSet(tokenId);
+    }
 }
 
 void Selection(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
     Token name;
 }
 {
-      (name = Name())
-      (
-          FieldWithAlias(name) |
-          Field(name)
-      ) |
-      <ELLIPSIS>
-      (
-          FragmentSpread() |
-          InlineFragment()
-      )
+    (name = Name() (
+        FieldWithAlias(name, line, column, tokenId) |
+        Field(name, line, column, tokenId)
+    )) |
+    (<ELLIPSIS> (
+        FragmentSpread(line, column, tokenId) |
+        InlineFragment(line, column, tokenId)
+    ))
 }
 
-void Field(Token name): {
+void Field(Token name, int line, int column, int tokenId): {
+    visitor.visitField(line, column, tokenId, name.image);
 }
 {
-    (Arguments())? (Directives())? (SelectionSet())?
+    (Arguments())? (Directives())? (SelectionSet())? {
+        visitor.endField(tokenId);
+    }
 }
 
-void FieldWithAlias(Token name): {
+void FieldWithAlias(Token alias, int line, int column, int tokenId): {
+    Token name;
 }
 {
-    <COLON> Name() (Arguments())? (Directives())? (SelectionSet())?
+    <COLON> name = Name() {
+        visitor.visitField(line, column, tokenId, name.image, alias.image);
+    }
+    (Arguments())? (Directives())? (SelectionSet())? {
+        visitor.endField(tokenId);
+    }
 }
 
 void Arguments(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitArguments(line, column, tokenId);
 }
 {
-    <OPAR> (Argument())+ <CPAR>
+    <OPAR> (Argument())+ <CPAR> {
+        visitor.endArguments(tokenId);
+    }
 }
 
 void Argument(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name() <COLON> ValueWithVariable()
+    name = Name() {
+        visitor.visitArgument(line, column, tokenId, name.image);
+    }
+    <COLON> ValueWithVariable() {
+        visitor.endArgument(tokenId);
+    }
 }
 
 
 
 
 // Fragments
-void FragmentSpread(): {
+void FragmentSpread(int line, int column, int tokenId): {
+    Token name;
 }
 {
-    FragmentName() (Directives())?
+    name = FragmentName() {
+        visitor.visitFragmentSpread(line, column, tokenId, name.image);
+    }
+    (Directives())? {
+        visitor.endFragmentSpread(tokenId);
+    }
 }
 
-void InlineFragment(): {
+void InlineFragment(int line, int column, int tokenId): {
+    Token type = null;
 }
 {
-    (TypeCondition())? (Directives())? SelectionSet()
+    (type = TypeCondition())? {
+        visitor.visitInlineFragment(line, column, tokenId, type.image);
+    }
+    (Directives())? SelectionSet() {
+        visitor.endInlineFragment(tokenId);
+    }
 }
 
 void FragmentDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
+    Token type;
 }
 {
-    <FRAGMENT> FragmentName() TypeCondition() (Directives())? SelectionSet()
+    <FRAGMENT> name = FragmentName() type = TypeCondition() {
+        visitor.visitFragmentDefinition(line, column, tokenId, name.image, type.image);
+    }
+    (Directives())? SelectionSet() {
+        visitor.endFragmentDefinition(tokenId);
+    }
 }
 
-void FragmentName(): {
+Token FragmentName(): {
     Token name;
 }
 {
     (name = Name())
     {
         if ("on".equals(name.image)) throw new ParseException("on is not allowed at a name");
+        return name;
     }
 }
 
-void TypeCondition(): {
+Token TypeCondition(): {
+    Token name;
 }
 {
-    <ON> TypeName()
+    <ON> name = TypeName() {
+        return name;
+    }
 }
 
 
@@ -285,15 +409,15 @@ Token Name(): {
         t = <UNION> |
         t = <INPUT> |
         t = <EXTEND> |
-        t = <DIRECTIVE>)
+        t = <DIRECTIVE>
+    )
     {
         return t;
     }
 
 }
 
-void Value(): {
-}
+void Value(): {}
 {
       IntValue()
     | FloatValue()
@@ -304,8 +428,7 @@ void Value(): {
     | ObjectValue()
 }
 
-void ValueWithVariable(): {
-}
+void ValueWithVariable(): {}
 {
       Variable()
     | IntValue()
@@ -318,14 +441,18 @@ void ValueWithVariable(): {
 }
 
 void EnumValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
     Token name = null;
 }
 {
-    ( name = Name() )
-    {
+    name = Name() {
         if ("true".equals(name.image)
               || "false".equals(name.image)
               || "null".equals(name.image)) throw new ParseException("true, false, null are not allowed as names");
+
+        visitor.visitEnumLiteral(line, column, tokenId, name.image);
     }
 }
 
@@ -334,15 +461,27 @@ void EnumValue(): {
 
 // List Value
 void ListValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitListValue(line, column, tokenId);
 }
 {
-    <OBRA> (Value())* <CBRA>
+    <OBRA> (Value())* <CBRA> {
+        visitor.endListValue(tokenId);
+    }
 }
 
 void ListValueWithVariable(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitListValue(line, column, tokenId);
 }
 {
-    <OBRA> (ValueWithVariable())* <CBRA>
+    <OBRA> (ValueWithVariable())* <CBRA> {
+        visitor.endListValue(tokenId);
+    }
 }
 
 
@@ -350,27 +489,57 @@ void ListValueWithVariable(): {
 
 // Object Value
 void ObjectValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitObjectValue(line, column, tokenId);
 }
 {
-    <OCBR> (ObjectField())* <CCBR>
+    <OCBR> (ObjectField())* <CCBR> {
+        visitor.endObjectValue(tokenId);
+    }
 }
 
 void ObjectValueWithVariable(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitObjectValue(line, column, tokenId);
 }
 {
-    <OCBR> (ObjectFieldWithValue())* <CCBR>
+    <OCBR> (ObjectFieldWithValue())* <CCBR> {
+        visitor.endObjectValue(tokenId);
+    }
 }
 
 void ObjectField(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name() <COLON> Value()
+    name = Name() {
+        visitor.visitObjectField(line, column, tokenId, name.image);
+    }
+    <COLON> Value() {
+        visitor.endObjectField(tokenId);
+    }
 }
 
 void ObjectFieldWithValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name() <COLON> ValueWithVariable()
+    name = Name() {
+        visitor.visitObjectField(line, column, tokenId, name.image);
+    }
+    <COLON> ValueWithVariable() {
+        visitor.endObjectField(tokenId);
+    }
 }
 
 
@@ -378,15 +547,30 @@ void ObjectFieldWithValue(): {
 
 // Directives
 void Directives(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitDirectives(line, column, tokenId);
 }
 {
-    <AT> Directive() (<AT> Directive())*
+    <AT> Directive() (<AT> Directive())* {
+        visitor.endDirectives(tokenId);
+    }
 }
 
 void Directive(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name() (Arguments())?
+    name = Name() {
+        visitor.visitDirective(line, column, tokenId, name.image);
+    }
+    (Arguments())? {
+        visitor.endDirective(tokenId);
+    }
 }
 
 
@@ -394,33 +578,49 @@ void Directive(): {
 
 // Types
 void Type(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token typeName = null;
+    Token bang = null;
 }
 {
     (
-        TypeName() |
+        typeName = TypeName() (bang = <BANG>)? {
+            visitor.visitType(line, column, tokenId, typeName.image, bang == null ? true : false);
+        } |
         ListType()
     )
-    (<BANG>)?
+
 }
 
-void TypeName(): {
+Token TypeName(): {
+    Token t;
 }
 {
-    Name()
+    t = Name() {
+        return t;
+    }
 }
 
 void ListType(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token bang = null;
+    visitor.visitListType(line, column, tokenId);
 }
 {
-    <OBRA> Type() <CBRA>
+    <OBRA> Type() <CBRA> (bang = <BANG>)? {
+        visitor.endListType(tokenId, bang == null ? true : false);
+    }
 }
 
 
 
 
 // Type System
-void TypeSystemDefinition(): {
-}
+void TypeSystemDefinition(): {}
 {
     SchemaDefinition() |
     TypeDefinition() |
@@ -429,19 +629,32 @@ void TypeSystemDefinition(): {
 }
 
 void SchemaDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitSchemaDefinition(line, column, tokenId);
 }
 {
-    <SCHEMA> (Directives())? <OCBR> (OperationTypeDefinition())+ <CCBR>
+    <SCHEMA> (Directives())? <OCBR> (OperationTypeDefinition())+ <CCBR> {
+        visitor.endSchemaDefinition(tokenId);
+    }
 }
 
 void OperationTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token operationType;
+    Token typeName;
 }
 {
-    OperationType() <COLON> TypeName()
+    operationType = OperationType() <COLON> typeName = TypeName() {
+        OperationType opType = OperationType.byValue(operationType.image);
+        visitor.visitOperationTypeDefinition(line, column, tokenId, opType, typeName.image);
+    }
 }
 
-void TypeDefinition(): {
-}
+void TypeDefinition(): {}
 {
     ScalarTypeDefinition() |
     ObjectTypeDefinition() |
@@ -452,99 +665,234 @@ void TypeDefinition(): {
 }
 
 void ScalarTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <SCALAR> Name() (Directives())?
+    <SCALAR> name = Name() {
+        visitor.visitScalarTypeDefinition(line, column, tokenId, name.image);
+    }
+    (Directives())? {
+        visitor.endScalarTypeDefinition(tokenId);
+    }
 }
 
 void ObjectTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <TYPE> Name() (ImplementsInterface())? (Directives())? <OCBR> (FieldDefinition())+ <CCBR>
+    <TYPE> name = Name() {
+        visitor.visitObjectTypeDefinition(line, column, tokenId, name.image);
+    }
+    (ImplementsInterface())? (Directives())? <OCBR> (FieldDefinition())+ <CCBR> {
+        visitor.endObjectTypeDefinition(tokenId);
+    }
 }
 
-void ImplementsInterface(): {
-}
+void ImplementsInterface(): {}
 {
-    <IMPLEMENTS> (TypeName())+
+    <IMPLEMENTS> ({
+        int tokenId = tokenId();
+        int line = line();
+        int column = column();
+        Token typeName;
+    } typeName = TypeName() {
+        visitor.visitImplementsType(line, column, tokenId, typeName.image);
+    })+
 }
 
 void FieldDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name() (ArgumentsDefinition())? <COLON> Type() (Directives())?
+    name = Name() {
+        visitor.visitFieldDefinition(line, column, tokenId, name.image);
+    }
+    (ArgumentsDefinition())? <COLON> Type() (Directives())? {
+        visitor.endFieldDefinition(tokenId);
+    }
 }
 
 void ArgumentsDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitArgumentsDefinition(line, column, tokenId);
 }
 {
-    <OPAR> (InputValueDefinition())+ <CPAR>
+    <OPAR> (InputValueDefinition())+ <CPAR> {
+        visitor.endArgumentsDefinition(tokenId);
+    }
 }
 
 void InputValueDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name() <COLON> Type() (DefaultValue())? (Directives())?
+    name = Name() {
+        visitor.visitInputValueDefinition(line, column, tokenId, name.image);
+    }
+    <COLON> Type() (DefaultValue())? (Directives())? {
+        visitor.endInputValueDefinition(tokenId);
+    }
 }
 
 void InterfaceTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <INTERFACE> Name() (Directives())? <OCBR> (FieldDefinition())+ <CCBR>
+    <INTERFACE> name = Name() {
+        visitor.visitInterfaceTypeDefinition(line, column, tokenId, name.image);
+    }
+    (Directives())? <OCBR> (FieldDefinition())+ <CCBR> {
+        visitor.endInterfaceTypeDefinition(tokenId);
+    }
 }
 
 void UnionTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <UNION> Name() (Directives())? <EQ> UnionMembers()
+    <UNION> name = Name() {
+        visitor.visitUnionTypeDefinition(line, column, tokenId, name.image);
+    }
+    (Directives())? <EQ> UnionMembers() {
+        visitor.endUnionTypeDefinition(tokenId);
+    }
 }
 
 void UnionMembers(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token typeName;
 }
 {
-    TypeName() (<PIPE> TypeName())*
+    typeName = TypeName() {
+        visitor.visitUnionMember(line, column, tokenId, typeName.image);
+    }
+    (<PIPE> {
+        tokenId = tokenId();
+        line = line();
+        column = column();
+    } typeName = TypeName() {
+        visitor.visitUnionMember(line, column, tokenId, typeName.image);
+    })*
 }
 
 void EnumTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <ENUM> Name() (Directives())? <OCBR> (EnumValueDefinition())+ <CCBR>
+    <ENUM> name = Name() {
+        visitor.visitEnumTypeDefinition(line, column, tokenId, name.image);
+    }
+    (Directives())? <OCBR> (EnumValueDefinition())+ <CCBR> {
+        visitor.endEnumTypeDefinition(tokenId);
+    }
 }
 
 void EnumValueDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitEnumValueDefinition(line, column, tokenId);
 }
 {
-    EnumValue() (Directives())?
+    EnumValue() (Directives())? {
+        visitor.endEnumValueDefinition(tokenId);
+    }
 }
 
 void InputObjectTypeDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <INPUT> Name() (Directives())? <OCBR> (InputValueDefinition())+ <CCBR>
+    <INPUT> name = Name() {
+        visitor.visitInputObjectTypeDefinition(line, column, tokenId, name.image);
+    }
+    (Directives())? <OCBR> (InputValueDefinition())+ <CCBR> {
+        visitor.endInputObjectTypeDefinition(tokenId);
+    }
 }
 
 void TypeExtensionDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitTypeExtensionDefinition(line, column, tokenId);
 }
 {
-    <EXTEND> ObjectTypeDefinition()
+    <EXTEND> ObjectTypeDefinition() {
+        visitor.endTypeExtensionDefinition(tokenId);
+    }
 }
 
 void DirectiveDefinition(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    <DIRECTIVE> <AT> Name() (ArgumentsDefinition())? <ON> DirectiveLocations()
+    <DIRECTIVE> <AT> name = Name() {
+        visitor.visitDirectiveDefinition(line, column, tokenId, name.image);
+    }
+    (ArgumentsDefinition())? <ON> DirectiveLocations() {
+        visitor.endDirectiveDefinition(tokenId);
+    }
 }
 
 void DirectiveLocation(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token name;
 }
 {
-    Name()
+    name = Name() {
+        visitor.visitDirectiveLocation(line, column, tokenId, name.image);
+    }
 }
 
 void DirectiveLocations(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    visitor.visitDirectiveLocations(line, column, tokenId);
 }
 {
-    DirectiveLocation() (<PIPE> DirectiveLocation())*
+    DirectiveLocation() (<PIPE> {
+        tokenId = tokenId();
+        line = line();
+        column = column();
+    }
+    DirectiveLocation())* {
+        visitor.endDirectiveLocations(tokenId);
+    }
 }
 
 
@@ -552,25 +900,76 @@ void DirectiveLocations(): {
 
 // Tokens
 void BooleanValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token literal;
 }
 {
-    <TRUE> | <FALSE>
+    (
+        literal = <TRUE> |
+        literal = <FALSE>
+    )
+    {
+        visitor.visitBooleanLiteral(line, column, tokenId, literal.image);
+    }
 }
 
 void IntValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token t;
 }
 {
-    <INTEGER_LITERAL>
+    t = <INTEGER_LITERAL> {
+        try {
+            int literal = Integer.parseInt(t.image);
+            visitor.visitIntLiteral(line, column, tokenId, literal);
+        } catch (NumberFormatException e) {
+            throw new ParseException("Cannot convert '" + t.image + "' to int");
+        }
+    }
 }
 
 void FloatValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token t;
 }
 {
-    <FLOAT_LITERAL>
+    t = <FLOAT_LITERAL> {
+        try {
+            double literal = Double.parseDouble(t.image);
+            visitor.visitFloatLiteral(line, column, tokenId, literal);
+        } catch (NumberFormatException e) {
+            throw new ParseException("Cannot convert '" + t.image + "' to double");
+        }
+    }
 }
 
 void StringValue(): {
+    int tokenId = tokenId();
+    int line = line();
+    int column = column();
+    Token literal;
 }
 {
-    <STRING_LITERAL>
+    literal = <STRING_LITERAL> {
+        visitor.visitStringLiteral(line, column, tokenId, literal.image);
+    }
+}
+
+Token OperationType(): {
+    Token t;
+}
+{
+    (
+        t = <MUTATION> |
+        t = <QUERY>
+    )
+    {
+        return t;
+    }
 }
