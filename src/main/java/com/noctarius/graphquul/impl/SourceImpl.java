@@ -1,8 +1,8 @@
 package com.noctarius.graphquul.impl;
 
-import com.noctarius.graphquul.ast.Source;
+import com.noctarius.graphquul.Source;
 
-public final class SourceImpl
+final class SourceImpl
         implements Source {
 
     private final int line;

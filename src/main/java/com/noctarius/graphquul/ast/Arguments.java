@@ -2,8 +2,8 @@ package com.noctarius.graphquul.ast;
 
 import java.util.stream.Stream;
 
-public interface Document
+public interface Arguments
         extends Node {
 
-    Stream<Definition> definitions();
+    Stream<Argument> arguments();
 }

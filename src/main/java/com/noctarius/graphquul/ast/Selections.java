@@ -2,8 +2,8 @@ package com.noctarius.graphquul.ast;
 
 import java.util.stream.Stream;
 
-public interface Document
+public interface Selections
         extends Node {
 
-    Stream<Definition> definitions();
+    Stream<Selection> selections();
 }
