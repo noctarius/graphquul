@@ -3,6 +3,7 @@ package com.noctarius.graphquul.impl;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Type;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.stream.Stream;
 
@@ -32,6 +33,11 @@ final class MutableType
     @Override
     public Stream<Node> children() {
         return Stream.empty();
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

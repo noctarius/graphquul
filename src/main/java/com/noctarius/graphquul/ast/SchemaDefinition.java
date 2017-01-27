@@ -6,4 +6,6 @@ public interface SchemaDefinition
         extends TypeSystemDefinition, Directives {
 
     Stream<OperationTypeDefinition> operationTypeDefinitions();
+
+    boolean hasOperationTypeDefinitions();
 }

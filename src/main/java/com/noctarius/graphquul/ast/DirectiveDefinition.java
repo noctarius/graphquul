@@ -6,4 +6,6 @@ public interface DirectiveDefinition
         extends TypeSystemDefinition, NamedType, Arguments {
 
     Stream<DirectiveLocation> directiveLocations();
+
+    boolean hasDirectiveLocations();
 }

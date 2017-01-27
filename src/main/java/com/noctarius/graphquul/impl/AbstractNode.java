@@ -3,7 +3,6 @@ package com.noctarius.graphquul.impl;
 import com.noctarius.graphquul.ParserException;
 import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Node;
-import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.List;
 import java.util.Objects;
@@ -22,11 +21,6 @@ abstract class AbstractNode
     @Override
     public Source location() {
         return source;
-    }
-
-    @Override
-    public void acceptVisitor(ASTVisitor ASTVisitor) {
-
     }
 
     protected Stream<Node> asChildren(Object... children) {

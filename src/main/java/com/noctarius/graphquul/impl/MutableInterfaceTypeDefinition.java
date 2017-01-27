@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Directive;
 import com.noctarius.graphquul.ast.FieldDefinition;
 import com.noctarius.graphquul.ast.InterfaceTypeDefinition;
 import com.noctarius.graphquul.ast.Node;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,28 @@ final class MutableInterfaceTypeDefinition
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public Stream<FieldDefinition> fieldDefinitions() {
         return fieldDefinitions.stream();
     }
 
     @Override
+    public boolean hasFieldDefinitions() {
+        return fieldDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(directives, fieldDefinitions);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

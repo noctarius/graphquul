@@ -1,9 +1,10 @@
 package com.noctarius.graphquul.impl;
 
+import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.ObjectField;
 import com.noctarius.graphquul.ast.ObjectValue;
-import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +26,18 @@ final class MutableObjectValue
     }
 
     @Override
+    public boolean hasObjectFields() {
+        return objectFields.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(objectFields);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

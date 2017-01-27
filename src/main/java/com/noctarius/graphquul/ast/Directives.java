@@ -6,4 +6,6 @@ public interface Directives
         extends Node {
 
     Stream<Directive> directives();
+
+    boolean hasDirectives();
 }

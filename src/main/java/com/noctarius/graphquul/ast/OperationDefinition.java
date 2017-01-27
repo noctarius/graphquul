@@ -6,4 +6,6 @@ public interface OperationDefinition
         extends NamedType, OperationTyped, Definition, Directives, Selections {
 
     Stream<VariableDefinition> variableDefinitions();
+
+    boolean hasVariableDefinitions();
 }

@@ -4,6 +4,7 @@ import com.noctarius.graphquul.ast.ListValue;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Value;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +26,18 @@ final class MutableListValue
     }
 
     @Override
+    public boolean hasValues() {
+        return values.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(values);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

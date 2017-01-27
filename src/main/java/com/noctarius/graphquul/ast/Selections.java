@@ -6,4 +6,6 @@ public interface Selections
         extends Node {
 
     Stream<Selection> selections();
+
+    boolean hasSelections();
 }

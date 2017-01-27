@@ -6,4 +6,6 @@ public interface ListValue
         extends Value {
 
     Stream<Value> values();
+
+    boolean hasValues();
 }

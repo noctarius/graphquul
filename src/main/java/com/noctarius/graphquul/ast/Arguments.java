@@ -6,4 +6,6 @@ public interface Arguments
         extends Node {
 
     Stream<Argument> arguments();
+
+    boolean hasArguments();
 }

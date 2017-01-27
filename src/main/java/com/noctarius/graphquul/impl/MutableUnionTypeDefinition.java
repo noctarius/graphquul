@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Directive;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.UnionMember;
 import com.noctarius.graphquul.ast.UnionTypeDefinition;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,28 @@ final class MutableUnionTypeDefinition
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public Stream<UnionMember> unionMembers() {
         return unionMembers.stream();
     }
 
     @Override
+    public boolean hasUnionMembers() {
+        return unionMembers.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(directives, unionMembers);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

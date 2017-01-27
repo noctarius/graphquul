@@ -6,4 +6,6 @@ public interface ObjectValue
         extends Value {
 
     Stream<ObjectField> objectFields();
+
+    boolean hasObjectFields();
 }

@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Directive;
 import com.noctarius.graphquul.ast.InputObjectTypeDefinition;
 import com.noctarius.graphquul.ast.InputValueDefinition;
 import com.noctarius.graphquul.ast.Node;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,28 @@ final class MutableInputObjectTypeDefinition
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public Stream<InputValueDefinition> inputValueDefinitions() {
         return inputValueDefinitions.stream();
     }
 
     @Override
+    public boolean hasInputValueDefinitions() {
+        return inputValueDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(directives, inputValueDefinitions);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

@@ -6,4 +6,6 @@ public interface FieldDefinitions
         extends Node {
 
     Stream<FieldDefinition> fieldDefinitions();
+
+    boolean hasFieldDefinitions();
 }

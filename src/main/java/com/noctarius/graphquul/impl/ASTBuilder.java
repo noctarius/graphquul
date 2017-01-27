@@ -4,7 +4,10 @@ import com.noctarius.graphquul.IllegalParserStateException;
 import com.noctarius.graphquul.ast.Argument;
 import com.noctarius.graphquul.ast.DefaultValue;
 import com.noctarius.graphquul.ast.Directive;
+import com.noctarius.graphquul.ast.DirectiveDefinition;
+import com.noctarius.graphquul.ast.DirectiveLocation;
 import com.noctarius.graphquul.ast.Document;
+import com.noctarius.graphquul.ast.EnumTypeDefinition;
 import com.noctarius.graphquul.ast.EnumValueDefinition;
 import com.noctarius.graphquul.ast.Field;
 import com.noctarius.graphquul.ast.FieldDefinition;
@@ -12,9 +15,12 @@ import com.noctarius.graphquul.ast.FragmentDefinition;
 import com.noctarius.graphquul.ast.FragmentSpread;
 import com.noctarius.graphquul.ast.ImplementsInterface;
 import com.noctarius.graphquul.ast.InlineFragment;
+import com.noctarius.graphquul.ast.InputObjectTypeDefinition;
 import com.noctarius.graphquul.ast.InputValueDefinition;
+import com.noctarius.graphquul.ast.InterfaceTypeDefinition;
 import com.noctarius.graphquul.ast.ListType;
 import com.noctarius.graphquul.ast.Node;
+import com.noctarius.graphquul.ast.ObjectField;
 import com.noctarius.graphquul.ast.ObjectTypeDefinition;
 import com.noctarius.graphquul.ast.OperationDefinition;
 import com.noctarius.graphquul.ast.OperationType;
@@ -23,6 +29,8 @@ import com.noctarius.graphquul.ast.ScalarTypeDefinition;
 import com.noctarius.graphquul.ast.SchemaDefinition;
 import com.noctarius.graphquul.ast.Type;
 import com.noctarius.graphquul.ast.TypeExtensionDefinition;
+import com.noctarius.graphquul.ast.UnionMember;
+import com.noctarius.graphquul.ast.UnionTypeDefinition;
 import com.noctarius.graphquul.ast.Value;
 import com.noctarius.graphquul.ast.Variable;
 import com.noctarius.graphquul.ast.VariableDefinition;
@@ -107,12 +115,16 @@ public class ASTBuilder
                 return;
 
             case DirectiveDefinition:
+                popAndAdd(DefinitionAddable.class, DirectiveDefinition.class, DefinitionAddable::addDefinition);
                 return;
 
             case DirectiveLocation:
+                popAndAdd(DirectiveLocationAddable.class, DirectiveLocation.class,
+                        DirectiveLocationAddable::addDirectiveLocation);
                 return;
 
             case EnumTypeDefinition:
+                popAndAdd(DefinitionAddable.class, EnumTypeDefinition.class, DefinitionAddable::addDefinition);
                 return;
 
             case Field:
@@ -137,6 +149,7 @@ public class ASTBuilder
                 return;
 
             case InputObjectTypeDefinition:
+                popAndAdd(DefinitionAddable.class, InputObjectTypeDefinition.class, DefinitionAddable::addDefinition);
                 return;
 
             case InputValueDefinition:
@@ -145,9 +158,11 @@ public class ASTBuilder
                 return;
 
             case InterfaceTypeDefinition:
+                popAndAdd(DefinitionAddable.class, InterfaceTypeDefinition.class, DefinitionAddable::addDefinition);
                 return;
 
             case ObjectField:
+                popAndAdd(ObjectFieldAddable.class, ObjectField.class, ObjectFieldAddable::addObjectField);
                 return;
 
             case ObjectTypeDefinition:
@@ -159,9 +174,11 @@ public class ASTBuilder
                 return;
 
             case UnionMember:
+                popAndAdd(UnionMemberAddable.class, UnionMember.class, UnionMemberAddable::addUnionMember);
                 return;
 
             case UnionTypeDefinition:
+                popAndAdd(DefinitionAddable.class, UnionTypeDefinition.class, DefinitionAddable::addDefinition);
         }
     }
 

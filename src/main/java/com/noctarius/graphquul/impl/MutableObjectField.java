@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.ObjectField;
 import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Value;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.stream.Stream;
 
@@ -34,6 +35,11 @@ final class MutableObjectField
     @Override
     public Stream<Node> children() {
         return asChildren(value);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

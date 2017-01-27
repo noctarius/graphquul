@@ -11,6 +11,6 @@ public interface Node {
 
     Stream<Node> children();
 
-    void acceptVisitor(ASTVisitor ASTVisitor);
+    void acceptVisitor(ASTVisitor visitor);
 
 }

@@ -7,6 +7,7 @@ import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Type;
 import com.noctarius.graphquul.ast.Variable;
 import com.noctarius.graphquul.ast.VariableDefinition;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.stream.Stream;
 
@@ -40,6 +41,11 @@ final class MutableVariableDefinition
     @Override
     public Stream<Node> children() {
         return asChildren(variable, type, defaultValue);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.OperationTypeDefinition;
 import com.noctarius.graphquul.ast.SchemaDefinition;
 import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +28,28 @@ final class MutableSchemaDefinition
     }
 
     @Override
+    public boolean hasOperationTypeDefinitions() {
+        return operationTypeDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Directive> directives() {
         return directives.stream();
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(directives, operationTypeDefinitions);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

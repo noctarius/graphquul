@@ -1,12 +1,13 @@
 package com.noctarius.graphquul.impl;
 
 import com.noctarius.graphquul.IllegalParserStateException;
+import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Directive;
 import com.noctarius.graphquul.ast.FieldDefinition;
 import com.noctarius.graphquul.ast.InputValueDefinition;
 import com.noctarius.graphquul.ast.Node;
-import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Type;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,11 @@ final class MutableFieldDefinition
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public String name() {
         return name;
     }
@@ -49,8 +55,18 @@ final class MutableFieldDefinition
     }
 
     @Override
+    public boolean hasInputValueDefinitions() {
+        return inputValueDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(type, directives, inputValueDefinitions);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

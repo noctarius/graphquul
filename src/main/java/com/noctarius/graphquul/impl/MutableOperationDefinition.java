@@ -7,6 +7,7 @@ import com.noctarius.graphquul.ast.OperationType;
 import com.noctarius.graphquul.ast.Selection;
 import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.VariableDefinition;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,11 @@ final class MutableOperationDefinition
     }
 
     @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    @Override
     public String name() {
         return name;
     }
@@ -57,13 +63,28 @@ final class MutableOperationDefinition
     }
 
     @Override
+    public boolean hasVariableDefinitions() {
+        return variableDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Directive> directives() {
         return directives.stream();
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public Stream<Selection> selections() {
         return selections.stream();
+    }
+
+    @Override
+    public boolean hasSelections() {
+        return selections.size() > 0;
     }
 
     @Override

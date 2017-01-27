@@ -6,6 +6,7 @@ import com.noctarius.graphquul.ast.Field;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.Selection;
 import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +49,18 @@ final class MutableField
     }
 
     @Override
+    public boolean hasArguments() {
+        return arguments.size() > 0;
+    }
+
+    @Override
     public Stream<Directive> directives() {
         return directives.stream();
+    }
+
+    @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
     }
 
     @Override
@@ -58,8 +69,18 @@ final class MutableField
     }
 
     @Override
+    public boolean hasSelections() {
+        return selections.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(arguments, directives, selections);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

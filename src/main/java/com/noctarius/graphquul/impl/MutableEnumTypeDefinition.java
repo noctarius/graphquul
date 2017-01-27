@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Directive;
 import com.noctarius.graphquul.ast.EnumTypeDefinition;
 import com.noctarius.graphquul.ast.EnumValueDefinition;
 import com.noctarius.graphquul.ast.Node;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,28 @@ final class MutableEnumTypeDefinition
     }
 
     @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
     public Stream<EnumValueDefinition> enumValueDefinitions() {
         return enumValueDefinitions.stream();
     }
 
     @Override
+    public boolean hasEnumValueDefinitions() {
+        return enumValueDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(directives, enumValueDefinitions);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

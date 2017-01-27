@@ -6,4 +6,6 @@ public interface InputValueDefinitions
         extends Node {
 
     Stream<InputValueDefinition> inputValueDefinitions();
+
+    boolean hasInputValueDefinitions();
 }

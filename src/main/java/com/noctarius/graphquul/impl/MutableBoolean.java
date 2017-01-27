@@ -4,6 +4,7 @@ import com.noctarius.graphquul.IllegalParserArgumentException;
 import com.noctarius.graphquul.ast.BooleanLiteral;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.stream.Stream;
 
@@ -35,6 +36,11 @@ final class MutableBoolean
     @Override
     public Stream<Node> children() {
         return Stream.empty();
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

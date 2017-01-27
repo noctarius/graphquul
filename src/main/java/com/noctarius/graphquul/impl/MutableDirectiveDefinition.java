@@ -5,6 +5,7 @@ import com.noctarius.graphquul.ast.Argument;
 import com.noctarius.graphquul.ast.DirectiveDefinition;
 import com.noctarius.graphquul.ast.DirectiveLocation;
 import com.noctarius.graphquul.ast.Node;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +36,28 @@ public final class MutableDirectiveDefinition
     }
 
     @Override
+    public boolean hasArguments() {
+        return arguments.size() > 0;
+    }
+
+    @Override
     public Stream<DirectiveLocation> directiveLocations() {
         return directiveLocations.stream();
     }
 
     @Override
+    public boolean hasDirectiveLocations() {
+        return directiveLocations.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(arguments, directiveLocations);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

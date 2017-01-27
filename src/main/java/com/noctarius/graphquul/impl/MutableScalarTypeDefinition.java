@@ -4,6 +4,7 @@ import com.noctarius.graphquul.ast.Directive;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.ScalarTypeDefinition;
 import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +34,18 @@ final class MutableScalarTypeDefinition
     }
 
     @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    @Override
     public Stream<Directive> directives() {
         return directives.stream();
+    }
+
+    @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
     }
 
     @Override

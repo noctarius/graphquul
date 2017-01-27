@@ -6,4 +6,6 @@ public interface UnionTypeDefinition
         extends TypeDefinition, NamedType, Directives {
 
     Stream<UnionMember> unionMembers();
+
+    boolean hasUnionMembers();
 }

@@ -6,4 +6,6 @@ public interface ImplementsInterfaces
         extends Node {
 
     Stream<ImplementsInterface> implementsInterfaces();
+
+    boolean hasImplementsInterfaces();
 }

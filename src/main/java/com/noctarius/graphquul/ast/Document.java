@@ -6,4 +6,6 @@ public interface Document
         extends Node {
 
     Stream<Definition> definitions();
+
+    boolean hasDefinitions();
 }

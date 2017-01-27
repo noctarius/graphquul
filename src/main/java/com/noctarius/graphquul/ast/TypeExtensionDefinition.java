@@ -6,4 +6,6 @@ public interface TypeExtensionDefinition
         extends TypeSystemDefinition {
 
     Stream<ObjectTypeDefinition> objectTypeDefinitions();
+
+    boolean hasObjectTypeDefinitions();
 }

@@ -4,6 +4,7 @@ import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Node;
 import com.noctarius.graphquul.ast.ObjectTypeDefinition;
 import com.noctarius.graphquul.ast.TypeExtensionDefinition;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +26,18 @@ final class MutableTypeExtensionDefinition
     }
 
     @Override
+    public boolean hasObjectTypeDefinitions() {
+        return objectTypeDefinitions.size() > 0;
+    }
+
+    @Override
     public Stream<Node> children() {
         return asChildren(objectTypeDefinitions);
+    }
+
+    @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 
     @Override

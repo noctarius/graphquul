@@ -1,9 +1,10 @@
 package com.noctarius.graphquul.impl;
 
+import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Definition;
 import com.noctarius.graphquul.ast.Document;
 import com.noctarius.graphquul.ast.Node;
-import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.visitor.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +26,18 @@ final class MutableDocument
     }
 
     @Override
+    public void acceptVisitor(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+
+    @Override
     public Stream<Definition> definitions() {
         return definitions.stream();
+    }
+
+    @Override
+    public boolean hasDefinitions() {
+        return definitions.size() > 0;
     }
 
     @Override
