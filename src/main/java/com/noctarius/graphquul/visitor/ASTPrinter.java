@@ -48,6 +48,8 @@ import com.noctarius.graphquul.ast.Variable;
 import com.noctarius.graphquul.ast.VariableDefinition;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -79,11 +81,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(Document document) {
-            printObject(document, d -> {
-                if (d.hasDefinitions()) {
-                    printProperty("definitions", d.definitions());
-                }
-            });
+            printObject(document, ifDefinitions);
         }
 
         @Override
@@ -108,11 +106,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(DirectiveDefinition directiveDefinition) {
-            printObject(directiveDefinition, d -> {
-                if (d.hasDirectiveLocations()) {
-                    printProperty("directiveLocations", d.directiveLocations());
-                }
-            });
+            printObject(directiveDefinition, ifDirectiveLocations);
         }
 
         @Override
@@ -127,11 +121,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(EnumTypeDefinition enumTypeDefinition) {
-            printObject(enumTypeDefinition, e -> {
-                if (e.hasEnumValueDefinitions()) {
-                    printProperty("enumValueDefinitions", e.enumValueDefinitions());
-                }
-            });
+            printObject(enumTypeDefinition, ifEnumValueDefinitions);
         }
 
         @Override
@@ -204,11 +194,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(ListValue listValue) {
-            printObject(listValue, l -> {
-                if (l.hasValues()) {
-                    printProperty("values", l.values());
-                }
-            });
+            printObject(listValue, ifValues);
         }
 
         @Override
@@ -223,20 +209,12 @@ public final class ASTPrinter {
 
         @Override
         public void visit(ObjectValue objectValue) {
-            printObject(objectValue, o -> {
-                if (o.hasObjectFields()) {
-                    printProperty("objectFields", o.objectFields());
-                }
-            });
+            printObject(objectValue, ifObjectFields);
         }
 
         @Override
         public void visit(OperationDefinition operationDefinition) {
-            printObject(operationDefinition, o -> {
-                if (o.hasVariableDefinitions()) {
-                    printProperty("variableDefinitions", o.variableDefinitions());
-                }
-            });
+            printObject(operationDefinition, ifVariableDefinitions);
         }
 
         @Override
@@ -251,11 +229,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(SchemaDefinition schemaDefinition) {
-            printObject(schemaDefinition, s -> {
-                if (s.hasOperationTypeDefinitions()) {
-                    printProperty("operationTypeDefinitions", s.operationTypeDefinitions());
-                }
-            });
+            printObject(schemaDefinition, ifOperationTypeDefinitions);
         }
 
         @Override
@@ -270,11 +244,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(TypeExtensionDefinition typeExtensionDefinition) {
-            printObject(typeExtensionDefinition, t -> {
-                if (t.hasObjectTypeDefinitions()) {
-                    printProperty("objectTypeDefinitions", t.objectTypeDefinitions());
-                }
-            });
+            printObject(typeExtensionDefinition, ifObjectTypeDefinitions);
         }
 
         @Override
@@ -284,11 +254,7 @@ public final class ASTPrinter {
 
         @Override
         public void visit(UnionTypeDefinition unionTypeDefinition) {
-            printObject(unionTypeDefinition, u -> {
-                if (u.hasUnionMembers()) {
-                    printProperty("unionMembers", u.unionMembers());
-                }
-            });
+            printObject(unionTypeDefinition, ifUnionMembers);
         }
 
         @Override
@@ -323,49 +289,60 @@ public final class ASTPrinter {
             String type = node.getClass().getSimpleName().replace("Mutable", "");
             builder.append(type).append(" {").append("\n");
             indentation++;
+
+            // Print name for named types
             if (node instanceof NamedType) {
                 printProperty("name", ((NamedType) node).name());
             }
+
+            // Print operation type for operation typed properties
             if (node instanceof OperationTyped) {
                 printProperty("operationType", ((OperationTyped) node).operationType());
             }
+
+            // Print specific properties
             if (consumer != null) {
                 consumer.accept(node);
             }
-            if (node instanceof Selections) {
-                if (((Selections) node).hasSelections()) {
-                    printProperty("selections", ((Selections) node).selections());
-                }
-            }
-            if (node instanceof Directives) {
-                if (((Directives) node).hasDirectives()) {
-                    printProperty("directives", ((Directives) node).directives());
-                }
-            }
-            if (node instanceof Arguments) {
-                if (((Arguments) node).hasArguments()) {
-                    printProperty("arguments", ((Arguments) node).arguments());
-                }
-            }
-            if (node instanceof FieldDefinitions) {
-                if (((FieldDefinitions) node).hasFieldDefinitions()) {
-                    printProperty("fieldDefinitions", ((FieldDefinitions) node).fieldDefinitions());
-                }
-            }
-            if (node instanceof ImplementsInterfaces) {
-                if (((ImplementsInterfaces) node).hasImplementsInterfaces()) {
-                    printProperty("implementsInterfaces", ((ImplementsInterfaces) node).implementsInterfaces());
-                }
-            }
-            if (node instanceof InputValueDefinitions) {
-                if (((InputValueDefinitions) node).hasInputValueDefinitions()) {
-                    printProperty("inputValueDefinitions", ((InputValueDefinitions) node).inputValueDefinitions());
-                }
-            }
+
+            // Print common stream properties
+            ifSelections.accept(node);
+            ifDirectives.accept(node);
+            ifArguments.accept(node);
+            ifFieldDefinitions.accept(node);
+            ifImplementsInterfaces.accept(node);
+            ifInputValueDefinitions.accept(node);
+
+            // Remove last comma to meet JSON standards
             removeLastComma();
+
             indentation--;
             addIndentation();
             builder.append("}");
+        }
+
+        private <N, R> void printStreamProperty(Node node, Class<N> type, Predicate<N> predicate,
+                                                Function<N, Stream<R>> transformer) {
+
+            if (type.isAssignableFrom(node.getClass())) {
+                N multiSubNode = type.cast(node);
+                if (predicate.test(multiSubNode)) {
+                    String name = type.getSimpleName();
+                    String property = name.substring(0, 1).toLowerCase() + name.substring(1);
+                    printProperty(property, transformer.apply(multiSubNode));
+                }
+            }
+        }
+
+        private <N, R> void printStreamProperty(Node node, Class<N> type, String property, Predicate<N> predicate,
+                                                Function<N, Stream<R>> transformer) {
+
+            if (type.isAssignableFrom(node.getClass())) {
+                N multiSubNode = type.cast(node);
+                if (predicate.test(multiSubNode)) {
+                    printProperty(property, transformer.apply(multiSubNode));
+                }
+            }
         }
 
         private void printProperty(String property, Object value) {
@@ -402,5 +379,62 @@ public final class ASTPrinter {
                 }
             }
         }
+
+        // Common stream properties
+        private final Consumer<Node> ifSelections = node -> //
+                printStreamProperty(node, Selections.class, Selections::hasSelections, Selections::selections);
+
+        private final Consumer<Node> ifArguments = node -> //
+                printStreamProperty(node, Arguments.class, Arguments::hasArguments, Arguments::arguments);
+
+        private final Consumer<Node> ifDirectives = node -> //
+                printStreamProperty(node, Directives.class, Directives::hasDirectives, Directives::directives);
+
+        private final Consumer<Node> ifFieldDefinitions = node -> //
+                printStreamProperty(node, FieldDefinitions.class, FieldDefinitions::hasFieldDefinitions,
+                        FieldDefinitions::fieldDefinitions);
+
+        private final Consumer<Node> ifImplementsInterfaces = node -> //
+                printStreamProperty(node, ImplementsInterfaces.class, ImplementsInterfaces::hasImplementsInterfaces,
+                        ImplementsInterfaces::implementsInterfaces);
+
+        private final Consumer<Node> ifInputValueDefinitions = node -> //
+                printStreamProperty(node, InputValueDefinitions.class, InputValueDefinitions::hasInputValueDefinitions,
+                        InputValueDefinitions::inputValueDefinitions);
+
+        // Specific stream properties
+        private final Consumer<Node> ifUnionMembers = node -> //
+                printStreamProperty(node, UnionTypeDefinition.class, "unionMembers", UnionTypeDefinition::hasUnionMembers,
+                        UnionTypeDefinition::unionMembers);
+
+        private final Consumer<Node> ifObjectTypeDefinitions = node -> //
+                printStreamProperty(node, TypeExtensionDefinition.class, "objectTypeDefinitions",
+                        TypeExtensionDefinition::hasObjectTypeDefinitions, TypeExtensionDefinition::objectTypeDefinitions);
+
+        private final Consumer<Node> ifOperationTypeDefinitions = node -> //
+                printStreamProperty(node, SchemaDefinition.class, "operationTypeDefinitions",
+                        SchemaDefinition::hasOperationTypeDefinitions, SchemaDefinition::operationTypeDefinitions);
+
+        private final Consumer<Node> ifVariableDefinitions = node -> //
+                printStreamProperty(node, OperationDefinition.class, "variableDefinitions",
+                        OperationDefinition::hasVariableDefinitions, OperationDefinition::variableDefinitions);
+
+        private final Consumer<Node> ifObjectFields = node -> //
+                printStreamProperty(node, ObjectValue.class, "objectFields", ObjectValue::hasObjectFields,
+                        ObjectValue::objectFields);
+
+        private final Consumer<Node> ifValues = node -> //
+                printStreamProperty(node, ListValue.class, "values", ListValue::hasValues, ListValue::values);
+
+        private final Consumer<Node> ifEnumValueDefinitions = node -> //
+                printStreamProperty(node, EnumTypeDefinition.class, "enumValueDefinitions",
+                        EnumTypeDefinition::hasEnumValueDefinitions, EnumTypeDefinition::enumValueDefinitions);
+
+        private final Consumer<Node> ifDirectiveLocations = node -> //
+                printStreamProperty(node, DirectiveDefinition.class, "directiveLocations",
+                        DirectiveDefinition::hasDirectiveLocations, DirectiveDefinition::directiveLocations);
+
+        private final Consumer<Node> ifDefinitions = node -> //
+                printStreamProperty(node, Document.class, "definitions", Document::hasDefinitions, Document::definitions);
     }
 }
