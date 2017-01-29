@@ -17,6 +17,7 @@ final class MutableUnionTypeDefinition
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
     private final List<UnionMember> unionMembers = new ArrayList<>();
 

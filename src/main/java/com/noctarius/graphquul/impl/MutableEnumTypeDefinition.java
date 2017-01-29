@@ -17,6 +17,7 @@ final class MutableEnumTypeDefinition
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
     private final List<EnumValueDefinition> enumValueDefinitions = new ArrayList<>();
 

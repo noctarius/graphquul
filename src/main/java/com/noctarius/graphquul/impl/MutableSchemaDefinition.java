@@ -15,8 +15,9 @@ final class MutableSchemaDefinition
         extends AbstractNode
         implements SchemaDefinition, DirectiveAddable, OperationTypeDefinitionAddable {
 
-    private final List<OperationTypeDefinition> operationTypeDefinitions = new ArrayList<>();
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
+    private final List<OperationTypeDefinition> operationTypeDefinitions = new ArrayList<>();
 
     MutableSchemaDefinition(Source source) {
         super(source);

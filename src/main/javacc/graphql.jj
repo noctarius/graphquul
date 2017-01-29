@@ -48,7 +48,7 @@ class GraphQLParser {
         this.visitor = visitor;
     }
 
-    static void parse(String query, StreamingVisitor visitor) throws ParseException, TokenMgrError {
+    public static void parse(String query, StreamingVisitor visitor) throws ParseException, TokenMgrError {
         new GraphQLParser(new StringReader(query), visitor).Document();
     }
 

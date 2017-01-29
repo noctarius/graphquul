@@ -14,6 +14,7 @@ final class MutableObjectValue
         extends AbstractNode
         implements ObjectValue, ObjectFieldAddable {
 
+    @ZeroOrMore
     private final List<ObjectField> objectFields = new ArrayList<>();
 
     MutableObjectValue(Source source) {

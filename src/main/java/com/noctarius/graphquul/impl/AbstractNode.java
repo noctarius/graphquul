@@ -4,6 +4,7 @@ import com.noctarius.graphquul.ParserException;
 import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Node;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -32,6 +33,43 @@ abstract class AbstractNode
             return ((List<Node>) value).stream();
         }
         return Stream.of((Node) value);
+    }
+
+    void validate() {
+        Field[] fields = getClass().getDeclaredFields();
+        for (Field field : fields) {
+            if (Source.class.isAssignableFrom(field.getType())) {
+                continue;
+            }
+
+            if (List.class.isAssignableFrom(field.getType())) {
+                boolean zeroOrMore = field.isAnnotationPresent(ZeroOrMore.class);
+                List<?> list = readField(field);
+                if (!zeroOrMore && list.size() == 0) {
+                    String message = String.format("At least one element expected in %s", field.getName());
+                    throw new ParserException(source, message);
+                }
+                continue;
+            }
+
+            boolean nullable = field.isAnnotationPresent(Optional.class);
+            Object value = readField(field);
+            if (!nullable && value == null) {
+                String message = String.format("Element %s must be set", field.getName());
+                throw new ParserException(source, message);
+            }
+        }
+
+        children().map(c -> (AbstractNode) c).forEach(AbstractNode::validate);
+    }
+
+    private <R> R readField(Field field) {
+        try {
+            field.setAccessible(true);
+            return (R) field.get(this);
+        } catch (IllegalAccessException e) {
+            throw new ParserException(source, "Could not read field", e);
+        }
     }
 
     <E extends ParserException> E buildParserException(String message, BiFunction<Source, String, E> constructor) {

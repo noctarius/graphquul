@@ -17,6 +17,7 @@ final class MutableInputObjectTypeDefinition
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
     private final List<InputValueDefinition> inputValueDefinitions = new ArrayList<>();
 

@@ -16,6 +16,8 @@
  */
 package com.noctarius.graphquul.impl;
 
+import com.noctarius.graphquul.Parser;
+import com.noctarius.graphquul.ast.Document;
 import com.noctarius.graphquul.visitor.ASTPrinter;
 
 import java.net.URL;
@@ -36,10 +38,8 @@ public class Test {
         Stream<String> lines = Files.lines(file, Charset.forName("UTF-8"));
         String query = lines.collect(supplier(), StringJoiner::add, StringJoiner::merge).toString();
 
-        ASTBuilder builder = new ASTBuilder();
-        GraphQLParser.parse(query, builder);
-
-        System.out.println(ASTPrinter.buildSyntaxTree(builder.getDocument()));
+        Document document = Parser.parse(query);
+        System.out.println(ASTPrinter.buildSyntaxTree(document));
     }
 
     private static Supplier<StringJoiner> supplier() {

@@ -16,6 +16,7 @@ final class MutableScalarTypeDefinition
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
 
     MutableScalarTypeDefinition(Source source, String name) {

@@ -14,6 +14,7 @@ final class MutableListValue
         extends AbstractNode
         implements ListValue, ValueAddable {
 
+    @ZeroOrMore
     private final List<Value> values = new ArrayList<>();
 
     MutableListValue(Source source) {

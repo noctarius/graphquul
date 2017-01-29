@@ -1,17 +1,24 @@
 package com.noctarius.graphquul.impl;
 
+import com.noctarius.graphquul.Source;
+import com.noctarius.graphquul.ast.Directive;
+import com.noctarius.graphquul.ast.Directives;
 import com.noctarius.graphquul.ast.FragmentSpread;
 import com.noctarius.graphquul.ast.Node;
-import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.visitor.ASTVisitor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 final class MutableFragmentSpread
         extends AbstractNode
-        implements FragmentSpread {
+        implements FragmentSpread, Directives, DirectiveAddable {
 
     private final String name;
+
+    @ZeroOrMore
+    private final List<Directive> directives = new ArrayList<>();
 
     MutableFragmentSpread(Source source, String name) {
         super(source);
@@ -25,7 +32,22 @@ final class MutableFragmentSpread
 
     @Override
     public Stream<Node> children() {
-        return Stream.empty();
+        return asChildren(directives);
+    }
+
+    @Override
+    public Stream<Directive> directives() {
+        return directives.stream();
+    }
+
+    @Override
+    public boolean hasDirectives() {
+        return directives.size() > 0;
+    }
+
+    @Override
+    public void addDirective(Directive directive) {
+        directives.add(directive);
     }
 
     @Override
@@ -35,7 +57,7 @@ final class MutableFragmentSpread
 
     @Override
     public String toString() {
-        return "FragmentSpread{" + "name='" + name + '\'' + '}';
+        return "MutableFragmentSpread{" + "name='" + name + '\'' + ", directives=" + directives + '}';
     }
 
     @Override
@@ -49,11 +71,16 @@ final class MutableFragmentSpread
 
         MutableFragmentSpread that = (MutableFragmentSpread) o;
 
-        return name != null ? name.equals(that.name) : that.name == null;
+        if (name != null ? !name.equals(that.name) : that.name != null) {
+            return false;
+        }
+        return directives != null ? directives.equals(that.directives) : that.directives == null;
     }
 
     @Override
     public int hashCode() {
-        return name != null ? name.hashCode() : 0;
+        int result = name != null ? name.hashCode() : 0;
+        result = 31 * result + (directives != null ? directives.hashCode() : 0);
+        return result;
     }
 }

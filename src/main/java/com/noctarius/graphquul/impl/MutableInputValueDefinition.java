@@ -19,10 +19,13 @@ final class MutableInputValueDefinition
 
     private final String name;
 
-    private final List<Directive> directives = new ArrayList<>();
-
     private Type type;
+
+    @Optional
     private DefaultValue defaultValue;
+
+    @ZeroOrMore
+    private final List<Directive> directives = new ArrayList<>();
 
     MutableInputValueDefinition(Source source, String name) {
         super(source);

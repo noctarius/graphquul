@@ -18,6 +18,7 @@ final class MutableEnumValueDefinition
 
     private EnumOrNameLiteral enumValue;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
 
     MutableEnumValueDefinition(Source source) {

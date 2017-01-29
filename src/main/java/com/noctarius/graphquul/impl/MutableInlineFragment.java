@@ -15,8 +15,10 @@ final class MutableInlineFragment
         extends AbstractNode
         implements InlineFragment, DirectiveAddable, SelectionAddable {
 
+    @Optional
     private final String typeCondition;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
     private final List<Selection> selections = new ArrayList<>();
 

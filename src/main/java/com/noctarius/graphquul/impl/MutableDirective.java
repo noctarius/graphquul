@@ -16,6 +16,7 @@ final class MutableDirective
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Argument> arguments = new ArrayList<>();
 
     MutableDirective(Source source, String name) {

@@ -17,6 +17,7 @@ public final class MutableDirectiveDefinition
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Argument> arguments = new ArrayList<>();
     private final List<DirectiveLocation> directiveLocations = new ArrayList<>();
 

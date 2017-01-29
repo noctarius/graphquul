@@ -1,9 +1,9 @@
 package com.noctarius.graphquul.impl;
 
 import com.noctarius.graphquul.IllegalParserStateException;
+import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.DefaultValue;
 import com.noctarius.graphquul.ast.Node;
-import com.noctarius.graphquul.Source;
 import com.noctarius.graphquul.ast.Type;
 import com.noctarius.graphquul.ast.Variable;
 import com.noctarius.graphquul.ast.VariableDefinition;
@@ -17,6 +17,8 @@ final class MutableVariableDefinition
 
     private Variable variable;
     private Type type;
+
+    @Optional
     private DefaultValue defaultValue;
 
     MutableVariableDefinition(Source source) {

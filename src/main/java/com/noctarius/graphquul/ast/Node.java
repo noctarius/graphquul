@@ -12,5 +12,4 @@ public interface Node {
     Stream<Node> children();
 
     void acceptVisitor(ASTVisitor visitor);
-
 }

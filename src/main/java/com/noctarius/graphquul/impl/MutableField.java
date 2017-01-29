@@ -17,10 +17,17 @@ final class MutableField
         implements Field, ArgumentAddable, DirectiveAddable, SelectionAddable {
 
     private final String name;
+
+    @Optional
     private final String alias;
 
+    @ZeroOrMore
     private final List<Argument> arguments = new ArrayList<>();
+
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
+
+    @ZeroOrMore
     private final List<Selection> selections = new ArrayList<>();
 
     MutableField(Source source, String name) {

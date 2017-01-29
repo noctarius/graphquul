@@ -17,12 +17,15 @@ final class MutableOperationDefinition
         extends AbstractNode
         implements OperationDefinition, SelectionAddable, VariableDefinitionAddable {
 
+    @Optional
     private final String name;
     private final OperationType operationType;
 
+    @ZeroOrMore
     private final List<VariableDefinition> variableDefinitions = new ArrayList<>();
-    private final List<Directive> directives = new ArrayList<>();
 
+    @ZeroOrMore
+    private final List<Directive> directives = new ArrayList<>();
     private final List<Selection> selections = new ArrayList<>();
 
     MutableOperationDefinition(Source source) {

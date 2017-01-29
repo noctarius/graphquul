@@ -63,6 +63,7 @@ public class ASTBuilder
     @Override
     public void endDocument(int tokenId) {
         Document document = pop(Document.class);
+        validateDocument(document);
         this.document = document;
     }
 
@@ -366,5 +367,9 @@ public class ASTBuilder
             String message = String.format(UNEXPECTED_TYPE_ON_STACK, type.getName(), node.getClass().getName());
             throw ((AbstractNode) node).buildParserException(message, IllegalParserStateException::new);
         }
+    }
+
+    private void validateDocument(Document document) {
+        ((AbstractNode) document).validate();
     }
 }

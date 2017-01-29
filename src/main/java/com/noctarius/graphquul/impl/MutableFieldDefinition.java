@@ -19,7 +19,10 @@ final class MutableFieldDefinition
 
     private final String name;
 
+    @ZeroOrMore
     private final List<Directive> directives = new ArrayList<>();
+
+    @ZeroOrMore
     private final List<InputValueDefinition> inputValueDefinitions = new ArrayList<>();
 
     private Type type;
